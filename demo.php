@@ -1,0 +1,477 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Public demo site of the algorithm plugins (algorithm.tsp.edu.rs).
+ *
+ * Put this file, algoritam-demo.mbz and algoritam-demo-sr.mbz in the Moodle folder, next to config.php (not in public/,
+ * so the web cannot run it), and run it from the command line or a cron job:
+ *   php demo.php setup   once: site settings, language packs, demo accounts, both demo courses
+ *   php demo.php reset   every night: demo courses from backup again (posts, attempts and changes are gone)
+ *
+ * @copyright  2026 Boban Blagojević
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+define('CLI_SCRIPT', true);
+require(__DIR__ . '/config.php');
+require_once($CFG->dirroot . '/course/lib.php');
+require_once($CFG->dirroot . '/user/lib.php');
+require_once($CFG->libdir . '/filterlib.php');
+require_once($CFG->libdir . '/enrollib.php');
+require_once($CFG->dirroot . '/backup/util/includes/restore_includes.php');
+
+const DEMO_SHORTNAME_EN = 'ALGORITHM-DEMO';
+const DEMO_FULLNAME_EN = 'Algorithms with flowcharts: demo (English)';
+const DEMO_MBZ_EN = 'algoritam-demo.mbz';
+
+const DEMO_SHORTNAME_SR = 'ALGORITHM-DEMO-SR';
+const DEMO_FULLNAME_SR = 'Algoritmi sa dijagramima toka: demo (srpski)';
+const DEMO_MBZ_SR = 'algoritam-demo-sr.mbz';
+
+const DEMO_PASSWORD = 'Demo-2026';
+const DEMO_USERS = [
+    'teacher' => ['firstname' => 'Demo', 'lastname' => 'Teacher', 'role' => 'editingteacher'],
+    'student' => ['firstname' => 'Demo', 'lastname' => 'Student', 'role' => 'student'],
+];
+
+$command = $argv[1] ?? '';
+if (!in_array($command, ['setup', 'reset'], true)) {
+    fwrite(STDERR, "Usage: php demo.php setup|reset\n");
+    exit(1);
+}
+\core\session\manager::set_user(get_admin());
+
+// Settings and CSS are always updated so design refinements apply on reset too.
+demo_settings();
+if ($command === 'setup') {
+    demo_languages();
+}
+
+$en_id = demo_restore_course(DEMO_MBZ_EN, DEMO_SHORTNAME_EN, DEMO_FULLNAME_EN);
+$sr_id = demo_restore_course(DEMO_MBZ_SR, DEMO_SHORTNAME_SR, DEMO_FULLNAME_SR);
+
+if ($en_id && $sr_id) {
+    demo_section_banner($en_id, 'en', $sr_id);
+    demo_section_banner($sr_id, 'sr', $en_id);
+} else if ($en_id) {
+    demo_section_banner_single($en_id);
+} else if ($sr_id) {
+    demo_section_banner_single($sr_id);
+}
+
+if ($en_id) {
+    demo_users($en_id);
+}
+if ($sr_id) {
+    demo_users($sr_id);
+}
+
+if ($en_id && $sr_id) {
+    demo_frontpage($en_id, $sr_id);
+} else {
+    demo_frontpage_single($en_id ?: $sr_id);
+}
+
+purge_all_caches();
+if ($en_id) {
+    echo "Done English: {$CFG->wwwroot}/course/view.php?id={$en_id}\n";
+}
+if ($sr_id) {
+    echo "Done Serbian: {$CFG->wwwroot}/course/view.php?id={$sr_id}\n";
+}
+
+/**
+ * Site settings of a public demo: no mail, no sign-up, guest button, all content cleaned, the algorithm filter on,
+ * modern custom CSS for theme_boost.
+ */
+function demo_settings(): void {
+    $settings = [
+        'noemailever' => 1,         // Nothing is ever mailed.
+        'registerauth' => '',       // No self registration.
+        'guestloginbutton' => 1,    // "Access as a guest" on the login page.
+        'forceclean' => 1,          // All content is cleaned, so nobody can put a script on a page.
+        'langmenu' => 1,
+        'timezone' => 'Europe/Belgrade',
+        'maxbytes' => 1048576,
+        'messaging' => 0,
+        'enableblogs' => 0,
+        'enablecourserequests' => 0,
+        'defaulthomepage' => 0,
+    ];
+    foreach ($settings as $name => $value) {
+        set_config($name, $value);
+    }
+    filter_set_global_state('algorithm', TEXTFILTER_ON);
+
+    // Modern Boost theme custom CSS
+    $customcss = <<<'CSS'
+/* Modern Boost Theme Enhancements for Algorithm Demo */
+:root {
+    --bs-primary: #4f46e5;
+    --bs-primary-rgb: 79, 70, 229;
+}
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #1e293b;
+}
+.card {
+    border-radius: 14px;
+    border: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+.demo-course-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.demo-course-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.12) !important;
+}
+.badge {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+pre, code, kbd, samp {
+    font-family: 'Fira Code', Consolas, 'Courier New', monospace;
+}
+.navbar-bootswatch, .navbar-light {
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+#page-footer {
+    background: #0f172a;
+    color: #94a3b8;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+#page-footer a {
+    color: #818cf8;
+}
+CSS;
+    set_config('customcss', $customcss, 'theme_boost');
+
+    // The shared demo accounts cannot change their password, profile or private files.
+    $userrole = get_archetype_roles('user');
+    $userrole = reset($userrole);
+    $system = context_system::instance();
+    foreach (['moodle/user:changeownpassword', 'moodle/user:editownprofile', 'moodle/user:manageownfiles'] as $cap) {
+        assign_capability($cap, CAP_PROHIBIT, $userrole->id, $system->id, true);
+    }
+    echo "settings and custom CSS done\n";
+}
+
+/**
+ * Serbian language packs (Latin and Cyrillic), when the server can download them.
+ */
+function demo_languages(): void {
+    try {
+        $controller = new \tool_langimport\controller();
+        $controller->install_languagepacks(['sr_lt', 'sr_cr']);
+        echo "language packs: " . implode(' ', $controller->info) . "\n";
+    } catch (\Throwable $e) {
+        echo "language packs not installed: " . $e->getMessage() . "\n";
+    }
+}
+
+/**
+ * Restore a demo course from its MBZ archive.
+ */
+function demo_restore_course(string $mbzfile, string $shortname, string $fullname): ?int {
+    global $DB;
+    $mbz = __DIR__ . '/' . $mbzfile;
+    if (!is_readable($mbz)) {
+        echo "warning: missing {$mbz}, skipping {$shortname}\n";
+        return null;
+    }
+    $folder = 'algdemo' . preg_replace('/[^a-zA-Z0-9]/', '', $shortname) . time();
+    $path = make_backup_temp_directory($folder);
+    get_file_packer('application/vnd.moodle.backup')->extract_to_pathname($mbz, $path);
+    $admin = get_admin();
+    $course = $DB->get_record('course', ['shortname' => $shortname]);
+    if ($course) {
+        $rc = new restore_controller(
+            $folder,
+            $course->id,
+            backup::INTERACTIVE_NO,
+            backup::MODE_GENERAL,
+            $admin->id,
+            backup::TARGET_EXISTING_DELETING
+        );
+        $rc->execute_precheck();
+        restore_dbops::delete_course_content($course->id, ['keep_roles_and_enrolments' => 1, 'keep_groups_and_groupings' => 1]);
+    } else {
+        $category = $DB->get_field('course_categories', 'id', [], IGNORE_MULTIPLE);
+        $courseid = restore_dbops::create_new_course($fullname, $shortname, $category);
+        $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
+        $rc = new restore_controller(
+            $folder,
+            $course->id,
+            backup::INTERACTIVE_NO,
+            backup::MODE_GENERAL,
+            $admin->id,
+            backup::TARGET_NEW_COURSE
+        );
+        $rc->execute_precheck();
+    }
+    $rc->execute_plan();
+    $rc->destroy();
+    $DB->set_field('course', 'shortname', $shortname, ['id' => $course->id]);
+    $DB->set_field('course', 'fullname', $fullname, ['id' => $course->id]);
+    $DB->set_field('course', 'visible', 1, ['id' => $course->id]);
+    demo_guest_access($course->id);
+    demo_teacher_limits($course->id);
+    rebuild_course_cache($course->id, true);
+    echo "course {$shortname} (id {$course->id}) restored\n";
+    return (int) $course->id;
+}
+
+/**
+ * Guests may look at the course (run the diagrams) without an account.
+ */
+function demo_guest_access(int $courseid): void {
+    global $DB;
+    $guest = enrol_get_plugin('guest');
+    $course = get_course($courseid);
+    $instance = $DB->get_record('enrol', ['courseid' => $courseid, 'enrol' => 'guest']);
+    if (!$instance) {
+        $guest->add_instance($course, ['status' => ENROL_INSTANCE_ENABLED]);
+    } else if ($instance->status != ENROL_INSTANCE_ENABLED) {
+        $guest->update_status($instance, ENROL_INSTANCE_ENABLED);
+    }
+}
+
+/**
+ * The demo teacher edits activities and questions, but not the course itself, its participants or its backups.
+ */
+function demo_teacher_limits(int $courseid): void {
+    global $DB;
+    $role = $DB->get_record('role', ['shortname' => 'editingteacher'], '*', MUST_EXIST);
+    $context = context_course::instance($courseid);
+    foreach (['moodle/course:update', 'moodle/course:enrolconfig', 'moodle/course:enrolreview', 'moodle/role:assign',
+            'enrol/manual:enrol', 'enrol/manual:manage', 'enrol/guest:config', 'moodle/backup:backupcourse',
+            'moodle/restore:restorecourse', 'moodle/course:reset', 'moodle/course:delete'] as $cap) {
+        if (get_capability_info($cap)) {
+            assign_capability($cap, CAP_PROHIBIT, $role->id, $context->id, true);
+        }
+    }
+    $context->mark_dirty();
+}
+
+/**
+ * Welcome banner in section 0 of the demo course with 4-step guided tour and language toggle.
+ */
+function demo_section_banner(int $courseid, string $lang, int $other_courseid): void {
+    global $CFG, $DB;
+    $other_url = "{$CFG->wwwroot}/course/view.php?id={$other_courseid}";
+
+    if ($lang === 'en') {
+        $banner = '<div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #312e81 60%, #4f46e5 100%); color: #ffffff;">'
+            . '<div class="card-body p-4">'
+            . '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">'
+            . '<span class="badge bg-white bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal" style="backdrop-filter: blur(4px);">✨ Interactive Flowcharts · English</span>'
+            . '<a href="' . $other_url . '" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold" style="backdrop-filter: blur(4px);">🇷🇸 Prebaci na srpski kurs →</a>'
+            . '</div>'
+            . '<h2 class="fw-bold text-white mb-2">Welcome to Algorithm Plugins for Moodle!</h2>'
+            . '<p class="mb-3" style="color: rgba(255,255,255,0.9) !important; font-size: 1.05rem;">Draw algorithms in TinyMCE, step through blocks, and grade with test cases. Follow this 4-step tour to experience the plugins:</p>'
+            . '<div class="row g-2 mb-3">'
+            . '<div class="col-md-3 col-6"><div class="p-2 px-3 rounded-3 bg-black bg-opacity-30 h-100"><div class="fw-bold text-warning small mb-1">1. RUN &amp; STEP</div><div class="small opacity-90">Click Step to watch blocks highlight &amp; variables change</div></div></div>'
+            . '<div class="col-md-3 col-6"><div class="p-2 px-3 rounded-3 bg-black bg-opacity-30 h-100"><div class="fw-bold text-info small mb-1">2. SOLVE EXERCISES</div><div class="small opacity-90">Click Edit to add missing loops/functions &amp; Test</div></div></div>'
+            . '<div class="col-md-3 col-6"><div class="p-2 px-3 rounded-3 bg-black bg-opacity-30 h-100"><div class="fw-bold text-success small mb-1">3. 2D MATRICES</div><div class="small opacity-90">Explore multiplication table &amp; matrix functions</div></div></div>'
+            . '<div class="col-md-3 col-6"><div class="p-2 px-3 rounded-3 bg-black bg-opacity-30 h-100"><div class="fw-bold text-light small mb-1">4. QUIZZES &amp; FORUM</div><div class="small opacity-90">Take auto-graded quiz &amp; share diagrams in forum</div></div></div>'
+            . '</div>'
+            . '<div class="d-flex flex-wrap align-items-center justify-content-between pt-2 border-top border-white border-opacity-25 small opacity-90">'
+            . '<div><strong>Demo Accounts:</strong> <code>student</code> or <code>teacher</code> (password: <code>Demo-2026</code>) · or explore as Guest</div>'
+            . '<div>Resets nightly at 03:30</div>'
+            . '</div></div></div>';
+    } else {
+        $banner = '<div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #312e81 60%, #4f46e5 100%); color: #ffffff;">'
+            . '<div class="card-body p-4">'
+            . '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">'
+            . '<span class="badge bg-white bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal" style="backdrop-filter: blur(4px);">✨ Dijagrami toka · Srpski</span>'
+            . '<a href="' . $other_url . '" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold" style="backdrop-filter: blur(4px);">🌐 Switch to English Course →</a>'
+            . '</div>'
+            . '<h2 class="fw-bold text-white mb-2">Dobrodošli u pluginove za algoritme u Moodle-u!</h2>'
+            . '<p class="mb-3" style="color: rgba(255,255,255,0.9) !important; font-size: 1.05rem;">Crtajte algoritme u TinyMCE, koračajte kroz blokove i automatski ocenjujte zadatke. Isprobajte sve u 4 koraka:</p>'
+            . '<div class="row g-2 mb-3">'
+            . '<div class="col-md-3 col-6"><div class="p-2 px-3 rounded-3 bg-black bg-opacity-30 h-100"><div class="fw-bold text-warning small mb-1">1. RUN I STEP</div><div class="small opacity-90">Kliknite Step i posmatrajte koračanje i tabelu promenljivih</div></div></div>'
+            . '<div class="col-md-3 col-6"><div class="p-2 px-3 rounded-3 bg-black bg-opacity-30 h-100"><div class="fw-bold text-info small mb-1">2. REŠAVANJE VEŽBI</div><div class="small opacity-90">Kliknite Edit, dopunite petlju ili funkciju i testirajte</div></div></div>'
+            . '<div class="col-md-3 col-6"><div class="p-2 px-3 rounded-3 bg-black bg-opacity-30 h-100"><div class="fw-bold text-success small mb-1">3. 2D MATRICE</div><div class="small opacity-90">Isprobajte tablicu množenja i funkcije sa matricom</div></div></div>'
+            . '<div class="col-md-3 col-6"><div class="p-2 px-3 rounded-3 bg-black bg-opacity-30 h-100"><div class="fw-bold text-light small mb-1">4. KVIZ I FORUM</div><div class="small opacity-90">Uradite automatski kviz i objavite dijagram na forumu</div></div></div>'
+            . '</div>'
+            . '<div class="d-flex flex-wrap align-items-center justify-content-between pt-2 border-top border-white border-opacity-25 small opacity-90">'
+            . '<div><strong>Demo nalozi:</strong> <code>student</code> ili <code>teacher</code> (lozinka: <code>Demo-2026</code>) · ili pristupite kao Gost</div>'
+            . '<div>Resetuje se svake noći u 03:30</div>'
+            . '</div></div></div>';
+    }
+
+    $DB->set_field('course_sections', 'summary', $banner, ['course' => $courseid, 'section' => 0]);
+    $DB->set_field('course_sections', 'summaryformat', FORMAT_HTML, ['course' => $courseid, 'section' => 0]);
+}
+
+/**
+ * Fallback banner when only one course is available.
+ */
+function demo_section_banner_single(int $courseid): void {
+    global $DB;
+    $banner = '<div class="card border-0 shadow-sm rounded-4 mb-4 p-4 text-white" style="background: linear-gradient(135deg, #0f172a 0%, #312e81 100%);">'
+        . '<h2 class="fw-bold mb-2">Welcome to Algorithm Plugins for Moodle!</h2>'
+        . '<p class="mb-3 text-white-50">Run algorithms step-by-step, inspect variables, switch between 7 programming languages, or test automatic grading in quizzes.</p>'
+        . '</div>';
+    $DB->set_field('course_sections', 'summary', $banner, ['course' => $courseid, 'section' => 0]);
+    $DB->set_field('course_sections', 'summaryformat', FORMAT_HTML, ['course' => $courseid, 'section' => 0]);
+}
+
+/**
+ * The shared demo accounts enrolled in the demo course.
+ */
+function demo_users(int $courseid): void {
+    global $CFG, $DB;
+    $manual = enrol_get_plugin('manual');
+    $instance = $DB->get_record('enrol', ['courseid' => $courseid, 'enrol' => 'manual']);
+    if (!$instance) {
+        $manual->add_instance(get_course($courseid));
+        $instance = $DB->get_record('enrol', ['courseid' => $courseid, 'enrol' => 'manual'], '*', MUST_EXIST);
+    }
+    foreach (DEMO_USERS as $username => $u) {
+        $user = $DB->get_record('user', ['username' => $username, 'mnethostid' => $CFG->mnet_localhost_id]);
+        if (!$user) {
+            $id = user_create_user((object) [
+                'username' => $username,
+                'password' => DEMO_PASSWORD,
+                'auth' => 'manual',
+                'confirmed' => 1,
+                'mnethostid' => $CFG->mnet_localhost_id,
+                'firstname' => $u['firstname'],
+                'lastname' => $u['lastname'],
+                'email' => "{$username}@algorithm.tsp.edu.rs",
+                'lang' => 'en',
+            ], true, false);
+            $user = $DB->get_record('user', ['id' => $id], '*', MUST_EXIST);
+        } else {
+            update_internal_user_password($user, DEMO_PASSWORD);
+        }
+        $roleid = $DB->get_field('role', 'id', ['shortname' => $u['role']], MUST_EXIST);
+        $manual->enrol_user($instance, $user->id, $roleid);
+        echo "user {$username} enrolled in course {$courseid} as {$u['role']}\n";
+    }
+}
+
+/**
+ * Front page with dual-language course cards, quick demo access, and plugin cards.
+ */
+function demo_frontpage(int $en_id, int $sr_id): void {
+    global $CFG, $DB;
+    $en_url = "{$CFG->wwwroot}/course/view.php?id={$en_id}";
+    $sr_url = "{$CFG->wwwroot}/course/view.php?id={$sr_id}";
+
+    $summary = '<p>This is the demo site of the <strong>algorithm plugins for Moodle</strong>: '
+        . '<a href="https://moodle.org/plugins/tiny_algorithm">tiny_algorithm</a> (flowchart editor), '
+        . '<a href="https://moodle.org/plugins/filter_algorithm">filter_algorithm</a> (run and step for readers) and '
+        . '<a href="https://moodle.org/plugins/qtype_algorithm">qtype_algorithm</a> (automatically graded questions).</p>'
+        . '<p>Open the demo courses as a guest, or log in with one of these accounts (password <strong>' . DEMO_PASSWORD . '</strong>):</p><ul>'
+        . '<li><strong>teacher</strong>: edit the pages and the quiz questions, insert flowcharts</li>'
+        . '<li><strong>student</strong>: solve the exercises, take the quiz, post in the forum</li></ul>'
+        . '<p>Courses available: <a href="' . $en_url . '"><strong>Algorithms with flowcharts: demo (English)</strong></a> · <a href="' . $sr_url . '"><strong>Algoritmi sa dijagramima toka: demo (srpski)</strong></a></p>'
+        . '<p>Everything you change is reset every night. Serbian (Latin and Cyrillic) is in the language menu.</p>';
+    $DB->update_record('course', (object) [
+        'id' => SITEID,
+        'fullname' => 'Algorithm plugins for Moodle: demo',
+        'shortname' => 'Algorithm demo',
+        'summary' => $summary,
+        'summaryformat' => FORMAT_HTML,
+    ]);
+
+    $hero = '<div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #312e81 50%, #4f46e5 100%); color: #ffffff;">'
+        . '<div class="card-body p-4 p-md-5">'
+        . '<div class="row align-items-center">'
+        . '<div class="col-lg-8">'
+        . '<div class="d-flex flex-wrap gap-2 mb-3">'
+        . '<span class="badge bg-white bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal" style="backdrop-filter: blur(4px);">✨ Official Demo for Moodle Algorithm Plugins</span>'
+        . '<span class="badge bg-info bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal">🧱 TinyMCE Editor</span>'
+        . '<span class="badge bg-warning bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal">▶️ Step Execution</span>'
+        . '<span class="badge bg-success bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal">🌐 7 Programming Languages</span>'
+        . '</div>'
+        . '<h1 class="display-6 fw-bold text-white mb-3">Interactive Flowcharts &amp; Algorithms in Moodle</h1>'
+        . '<p class="lead mb-4" style="color: rgba(255,255,255,0.92) !important; font-size: 1.15rem;">Draw algorithms directly in TinyMCE, run them step-by-step with live variable watches, convert to 7 programming languages, and grade submissions automatically with test cases.</p>'
+        . '<div class="d-flex flex-wrap gap-3 mb-2">'
+        . '<a href="' . $en_url . '" class="btn btn-light btn-lg px-4 fw-bold shadow-sm" style="border-radius: 12px; color: #312e81;">🇬🇧 Open English Demo</a>'
+        . '<a href="' . $sr_url . '" class="btn btn-outline-light btn-lg px-4 fw-bold shadow-sm" style="border-radius: 12px; border-width: 2px;">🇷🇸 Otvori kurs na srpskom</a>'
+        . '</div>'
+        . '</div>'
+        . '<div class="col-lg-4 text-center d-none d-lg-block">'
+        . '<div class="p-3 bg-white bg-opacity-10 rounded-4 shadow-sm" style="backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2);">'
+        . '<div class="fw-bold fs-5 text-white mb-2">⚡ Quick Test Accounts</div>'
+        . '<div class="text-start bg-dark bg-opacity-50 p-3 rounded-3 font-monospace small text-white mb-2">'
+        . '<div><strong>Teacher:</strong> teacher</div><div><strong>Student:</strong> student</div><div><strong>Password:</strong> ' . DEMO_PASSWORD . '</div>'
+        . '</div>'
+        . '<div class="small text-white-50">Or explore as <strong>Guest</strong>! Courses reset nightly at 03:30.</div>'
+        . '</div></div></div></div></div>'
+        // Dual-Language Cards
+        . '<div class="row g-3 mb-4">'
+        . '<div class="col-md-6">'
+        . '<div class="card h-100 border-0 shadow-sm p-4 demo-course-card" style="background:#ffffff; border-left: 5px solid #4f46e5 !important;">'
+        . '<div class="d-flex justify-content-between align-items-start mb-2">'
+        . '<h4 class="fw-bold mb-0 text-primary">🇬🇧 Algorithms: Demo (English)</h4>'
+        . '<span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill">ALGORITHM-DEMO</span>'
+        . '</div>'
+        . '<p class="text-muted mb-3">Run flowcharts step-by-step, inspect variables in real-time, translate to 7 languages (Python, C, C++, Java, C#, JS, Pascal), and solve exercises with test cases.</p>'
+        . '<a href="' . $en_url . '" class="btn btn-primary fw-bold px-4 rounded-3 align-self-start">🚀 Enter English Course →</a>'
+        . '</div></div>'
+        . '<div class="col-md-6">'
+        . '<div class="card h-100 border-0 shadow-sm p-4 demo-course-card" style="background:#ffffff; border-left: 5px solid #059669 !important;">'
+        . '<div class="d-flex justify-content-between align-items-start mb-2">'
+        . '<h4 class="fw-bold mb-0 text-success">🇷🇸 Algoritmi: Demo (srpski)</h4>'
+        . '<span class="badge bg-success bg-opacity-10 text-success px-3 py-1 rounded-pill">ALGORITHM-DEMO-SR</span>'
+        . '</div>'
+        . '<p class="text-muted mb-3">Crtanje dijagrama toka u TinyMCE, koračanje, praćenje vrednosti promenljivih, dvodimenzionalne matrice, funkcije i automatski ocenjivani kvizovi.</p>'
+        . '<a href="' . $sr_url . '" class="btn btn-success fw-bold px-4 rounded-3 align-self-start">🇷🇸 Otvori kurs na srpskom →</a>'
+        . '</div></div>'
+        . '</div>'
+        // Test Accounts Strip
+        . '<div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-light">'
+        . '<div class="row g-2 align-items-center text-center text-md-start">'
+        . '<div class="col-md-3 fw-bold text-dark"><span class="fs-5 me-2">⚡</span>Instant Demo Access:</div>'
+        . '<div class="col-md-3"><div class="p-2 px-3 bg-white rounded-3 shadow-sm border small"><strong>👤 Guest:</strong> Run &amp; step through all diagrams</div></div>'
+        . '<div class="col-md-3"><div class="p-2 px-3 bg-white rounded-3 shadow-sm border small"><strong>🎓 Student:</strong> <code>student</code> / <code>Demo-2026</code></div></div>'
+        . '<div class="col-md-3"><div class="p-2 px-3 rounded-3 bg-white rounded-3 shadow-sm border small"><strong>🧑‍🏫 Teacher:</strong> <code>teacher</code> / <code>Demo-2026</code></div></div>'
+        . '</div></div>'
+        // 3 Plugin Cards
+        . '<div class="row g-3 mb-4">'
+        . '<div class="col-md-4"><div class="card h-100 border-0 shadow-sm rounded-3 p-3"><div class="d-flex align-items-center mb-2"><span class="fs-4 me-2">🧱</span><h5 class="card-title mb-0 fw-bold"><a href="https://moodle.org/plugins/tiny_algorithm" target="_blank" class="text-decoration-none">tiny_algorithm</a></h5></div><p class="card-text text-muted small mb-0">Visual flowchart editor for TinyMCE with drag &amp; drop, matrices, undo/redo, and code generator for Python, C, C++, Java, C#, JS &amp; Pascal.</p></div></div>'
+        . '<div class="col-md-4"><div class="card h-100 border-0 shadow-sm rounded-3 p-3"><div class="d-flex align-items-center mb-2"><span class="fs-4 me-2">▶️</span><h5 class="card-title mb-0 fw-bold"><a href="https://moodle.org/plugins/filter_algorithm" target="_blank" class="text-decoration-none">filter_algorithm</a></h5></div><p class="card-text text-muted small mb-0">Text filter that turns static SVG diagrams into an interactive step-by-step viewer with variable watch and student editing &amp; testing.</p></div></div>'
+        . '<div class="col-md-4"><div class="card h-100 border-0 shadow-sm rounded-3 p-3"><div class="d-flex align-items-center mb-2"><span class="fs-4 me-2">📋</span><h5 class="card-title mb-0 fw-bold"><a href="https://moodle.org/plugins/qtype_algorithm" target="_blank" class="text-decoration-none">qtype_algorithm</a></h5></div><p class="card-text text-muted small mb-0">Moodle question type for quizzes: students draw algorithms, run them, and are graded automatically against test cases.</p></div></div>'
+        . '</div>';
+
+    $DB->set_field('course_sections', 'summary', $hero, ['course' => SITEID, 'section' => 1]);
+    $DB->set_field('course_sections', 'summaryformat', FORMAT_HTML, ['course' => SITEID, 'section' => 1]);
+    set_config('numsections', 1);
+    set_config('frontpage', FRONTPAGEALLCOURSELIST);
+    set_config('frontpageloggedin', FRONTPAGEALLCOURSELIST);
+    echo "front page done\n";
+}
+
+/**
+ * Front page with a single course fallback.
+ */
+function demo_frontpage_single(int $courseid): void {
+    global $CFG, $DB;
+    $url = "{$CFG->wwwroot}/course/view.php?id={$courseid}";
+    $hero = '<div class="card border-0 shadow-sm rounded-4 mb-4 p-5 text-white" style="background: linear-gradient(135deg, #0f172a 0%, #312e81 100%);">'
+        . '<h1 class="display-6 fw-bold mb-3">Algorithm Plugins for Moodle Demo</h1>'
+        . '<a href="' . $url . '" class="btn btn-light btn-lg px-4 fw-bold">Open Course</a>'
+        . '</div>';
+    $DB->set_field('course_sections', 'summary', $hero, ['course' => SITEID, 'section' => 1]);
+    $DB->set_field('course_sections', 'summaryformat', FORMAT_HTML, ['course' => SITEID, 'section' => 1]);
+}
