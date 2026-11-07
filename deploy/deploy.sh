@@ -11,6 +11,9 @@ cp demo.php "$MOODLE_DIR/"
 cp algoritam-demo.mbz "$MOODLE_DIR/"
 cp algoritam-demo-sr.mbz "$MOODLE_DIR/"
 
+echo "[$(date -Iseconds)] Purging Moodle caches..."
+/usr/bin/php "$MOODLE_DIR/admin/cli/purge_caches.php" || true
+
 echo "[$(date -Iseconds)] Running demo.php reset..."
 /usr/bin/php "$MOODLE_DIR/demo.php" reset
 echo "[$(date -Iseconds)] Algorithm demo deploy finished successfully!"

@@ -117,9 +117,35 @@ function demo_settings(): void {
     }
     filter_set_global_state('algorithm', TEXTFILTER_ON);
 
-    // Modern Boost theme custom CSS
+    // Demo login instructions on login/index.php
+    $auth_instructions = <<<'HTML'
+<div class="card border-0 shadow-lg rounded-4 p-4 text-start text-white" style="background: rgba(15, 23, 42, 0.92) !important; backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.18) !important; max-width: 440px; margin: 0 auto;">
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="fs-4">⚡</span>
+        <h5 class="fw-bold mb-0 text-white">Instant Demo Access</h5>
+    </div>
+    <div class="p-3 rounded-3 mb-2" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12);">
+        <div class="fw-bold mb-1" style="color: #38bdf8;">🧑‍🏫 Teacher: <code>teacher</code></div>
+        <div class="small" style="color: rgba(255, 255, 255, 0.9); line-height: 1.4;">Draw visual flowcharts in TinyMCE, export code to Python, C &amp; Pascal, create interactive quizzes.</div>
+    </div>
+    <div class="p-3 rounded-3 mb-3" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12);">
+        <div class="fw-bold mb-1" style="color: #fbbf24;">🎓 Student: <code>student</code></div>
+        <div class="small" style="color: rgba(255, 255, 255, 0.9); line-height: 1.4;">Step through flowcharts interactively, track variables in the live watch panel, solve algorithm quizzes.</div>
+    </div>
+    <div class="d-flex align-items-center justify-content-between pt-2 border-top border-white border-opacity-25 small mb-2">
+        <span style="color: rgba(255, 255, 255, 0.9);">Password:</span>
+        <code style="background: #000000; color: #fde047; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.95rem; border: 1px solid rgba(253, 224, 71, 0.4);">Demo-2026</code>
+    </div>
+    <div class="text-center small mt-2" style="color: rgba(255, 255, 255, 0.75);">
+        Or click the <strong>Log in as guest</strong> button below!
+    </div>
+</div>
+HTML;
+    set_config('auth_instructions', $auth_instructions);
+
+    // Modern Boost and Moove theme custom CSS
     $customcss = <<<'CSS'
-/* Modern Boost Theme Enhancements for Algorithm Demo */
+/* Modern Boost & Moove Theme Enhancements for Algorithm Demo */
 :root {
     --bs-primary: #4f46e5;
     --bs-primary-rgb: 79, 70, 229;
@@ -159,8 +185,22 @@ pre, code, kbd, samp {
 #page-footer a {
     color: #818cf8;
 }
+
+/* Center login instructions card in Moove theme */
+body.pagelayout-login .login-layout-left-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+body.pagelayout-login .login-layout-left-content .card {
+    max-width: 460px;
+    width: 100%;
+}
 CSS;
     set_config('customcss', $customcss, 'theme_boost');
+    set_config('scss', $customcss, 'theme_moove');
+    set_config('theme', 'moove');
 
     // The shared demo accounts cannot change their password, profile or private files.
     $userrole = get_archetype_roles('user');
