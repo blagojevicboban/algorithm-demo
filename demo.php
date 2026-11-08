@@ -77,6 +77,8 @@ if ($command === 'setup') {
     demo_languages();
 }
 
+demo_cleanup_obsolete_courses();
+
 $en_id = demo_restore_course(DEMO_MBZ_EN, DEMO_SHORTNAME_EN, DEMO_FULLNAME_EN);
 $sr_id = demo_restore_course(DEMO_MBZ_SR, DEMO_SHORTNAME_SR, DEMO_FULLNAME_SR);
 
@@ -305,6 +307,175 @@ function demo_set_course_overview(int $courseid, string $summary, string $cardfi
 }
 
 /**
+ * Safely purge obsolete or leftover demo courses (e.g. course ID 2).
+ */
+function demo_cleanup_obsolete_courses(): void {
+    global $DB;
+
+    // List all existing non-site courses
+    $courses = $DB->get_records_select('course', 'id > 1');
+    echo "Inspecting existing courses in database (" . count($courses) . " found):\n";
+    foreach ($courses as $c) {
+        echo " - Course ID {$c->id}: shortname='{$c->shortname}', fullname='{$c->fullname}'\n";
+    }
+
+    // Always explicitly check and purge Course ID 2 if present
+    if (isset($courses[2])) {
+        echo "Found obsolete Course ID 2. Initiating cleanup...\n";
+        demo_cleanup_single_course(2);
+    }
+
+    // Also check for any other leftover courses that don't match active shortnames
+    $active_shortnames = [DEMO_SHORTNAME_EN, DEMO_SHORTNAME_SR];
+    foreach ($courses as $c) {
+        if ($c->id != 2 && !in_array($c->shortname, $active_shortnames, true)) {
+            echo "Found obsolete course ID {$c->id} ('{$c->shortname}'). Purging...\n";
+            demo_cleanup_single_course((int)$c->id);
+        }
+    }
+}
+
+/**
+ * Thoroughly and safely delete a course, handling question bank corruption and DB constraints.
+ */
+function demo_cleanup_single_course(int $courseid): void {
+    global $DB, $CFG;
+
+    $course = $DB->get_record('course', ['id' => $courseid]);
+    if (!$course) {
+        echo "Course {$courseid} does not exist in DB.\n";
+        return;
+    }
+
+    echo "Attempting to delete course {$courseid} ('{$course->shortname}')...\n";
+
+    // 1. First, attempt standard Moodle delete_course()
+    try {
+        delete_course($courseid, false);
+        echo "Course {$courseid} deleted successfully via delete_course().\n";
+        return;
+    } catch (\Throwable $e) {
+        echo "Standard delete_course({$courseid}) failed: " . $e->getMessage() . "\n";
+        if ($DB->is_transaction_started()) {
+            try {
+                $DB->force_transaction_rollback();
+            } catch (\Throwable $te) {
+                echo "Rollback error: " . $te->getMessage() . "\n";
+            }
+        }
+    }
+
+    // 2. Pre-clean question bank records in this course's context that might cause exceptions
+    try {
+        $ctx = \context_course::instance($courseid, IGNORE_MISSING);
+        if ($ctx) {
+            $catids = $DB->get_fieldset_select('question_categories', 'id', 'contextid = ?', [$ctx->id]);
+            if (!empty($catids)) {
+                list($incat, $catparams) = $DB->get_in_or_equal($catids);
+                $qids = $DB->get_fieldset_select('question', 'id', "category $incat", $catparams);
+                if (!empty($qids)) {
+                    list($inq, $qparams) = $DB->get_in_or_equal($qids);
+
+                    // Question tables in safe deletion order
+                    $tables_with_q = ['question_hints' => 'questionid', 'question_answers' => 'question'];
+                    foreach ($tables_with_q as $tbl => $col) {
+                        if ($DB->get_manager()->table_exists($tbl)) {
+                            try {
+                                $DB->delete_records_select($tbl, "$col $inq", $qparams);
+                            } catch (\Throwable $e) {}
+                        }
+                    }
+
+                    // Moodle 4.0+ question bank tables
+                    $m4_tables = ['question_references', 'question_set_references'];
+                    foreach ($m4_tables as $tbl) {
+                        if ($DB->get_manager()->table_exists($tbl)) {
+                            try {
+                                $DB->delete_records_select($tbl, 'usingcontextid = ?', [$ctx->id]);
+                            } catch (\Throwable $e) {}
+                        }
+                    }
+                    if ($DB->get_manager()->table_exists('question_versions')) {
+                        try {
+                            $DB->delete_records_select('question_versions', "questionid $inq", $qparams);
+                        } catch (\Throwable $e) {}
+                    }
+                    try {
+                        $DB->delete_records_select('question', "id $inq", $qparams);
+                    } catch (\Throwable $e) {}
+                }
+                try {
+                    $DB->delete_records_select('question_categories', "id $incat", $catparams);
+                } catch (\Throwable $e) {}
+            }
+        }
+    } catch (\Throwable $qe) {
+        echo "Question bank pre-clean warning: " . $qe->getMessage() . "\n";
+    }
+
+    // 3. Try delete_course() again after clearing problematic question data
+    try {
+        delete_course($courseid, false);
+        echo "Course {$courseid} deleted successfully via delete_course() on 2nd attempt.\n";
+        return;
+    } catch (\Throwable $e2) {
+        echo "2nd delete_course({$courseid}) attempt failed: " . $e2->getMessage() . "\n";
+        if ($DB->is_transaction_started()) {
+            try {
+                $DB->force_transaction_rollback();
+            } catch (\Throwable $te2) {
+                echo "Rollback error: " . $te2->getMessage() . "\n";
+            }
+        }
+    }
+
+    // 4. Fallback: Direct DB purge of all course tables and context
+    echo "Executing direct database purge for course {$courseid}...\n";
+    $ctx = \context_course::instance($courseid, IGNORE_MISSING);
+    $ctxid = $ctx ? $ctx->id : null;
+
+    $cleanup_queries = [
+        "DELETE FROM {course_modules_completion} WHERE coursemoduleid IN (SELECT id FROM {course_modules} WHERE course = ?)" => [$courseid],
+        "DELETE FROM {course_modules} WHERE course = ?" => [$courseid],
+        "DELETE FROM {course_sections} WHERE course = ?" => [$courseid],
+        "DELETE FROM {course_format_options} WHERE courseid = ?" => [$courseid],
+        "DELETE FROM {user_enrolments} WHERE enrolid IN (SELECT id FROM {enrol} WHERE courseid = ?)" => [$courseid],
+        "DELETE FROM {enrol} WHERE courseid = ?" => [$courseid],
+        "DELETE FROM {grade_grades} WHERE itemid IN (SELECT id FROM {grade_items} WHERE courseid = ?)" => [$courseid],
+        "DELETE FROM {grade_items} WHERE courseid = ?" => [$courseid],
+        "DELETE FROM {event} WHERE courseid = ?" => [$courseid],
+    ];
+
+    foreach ($cleanup_queries as $sql => $params) {
+        try {
+            $DB->execute($sql, $params);
+        } catch (\Throwable $ex) {
+            echo "Direct query warning on " . substr($sql, 0, 40) . "...: " . $ex->getMessage() . "\n";
+        }
+    }
+
+    // Clean contexts
+    if ($ctxid) {
+        try {
+            // Delete child contexts (e.g. modules, blocks)
+            $DB->execute("DELETE FROM {context} WHERE path LIKE ?", ["%/{$ctxid}/%"]);
+            // Delete course context
+            $DB->delete_records('context', ['id' => $ctxid]);
+        } catch (\Throwable $ex) {
+            echo "Context deletion warning: " . $ex->getMessage() . "\n";
+        }
+    }
+
+    // Delete course record itself
+    try {
+        $DB->delete_records('course', ['id' => $courseid]);
+        echo "Course {$courseid} record successfully deleted from {course}!\n";
+    } catch (\Throwable $ex) {
+        echo "Error deleting {course} record: " . $ex->getMessage() . "\n";
+    }
+}
+
+/**
  * Restore a demo course from its MBZ archive.
  */
 function demo_restore_course(string $mbzfile, string $shortname, string $fullname): ?int {
@@ -320,7 +491,7 @@ function demo_restore_course(string $mbzfile, string $shortname, string $fullnam
     $admin = get_admin();
     $course = $DB->get_record('course', ['shortname' => $shortname]);
     if ($course) {
-        delete_course($course->id, false);
+        demo_cleanup_single_course((int)$course->id);
     }
     $category = $DB->get_field('course_categories', 'id', [], IGNORE_MULTIPLE);
     $courseid = restore_dbops::create_new_course($fullname, $shortname, $category);
