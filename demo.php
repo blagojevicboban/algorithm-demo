@@ -320,30 +320,20 @@ function demo_restore_course(string $mbzfile, string $shortname, string $fullnam
     $admin = get_admin();
     $course = $DB->get_record('course', ['shortname' => $shortname]);
     if ($course) {
-        $rc = new restore_controller(
-            $folder,
-            $course->id,
-            backup::INTERACTIVE_NO,
-            backup::MODE_GENERAL,
-            $admin->id,
-            backup::TARGET_EXISTING_DELETING
-        );
-        $rc->execute_precheck();
-        restore_dbops::delete_course_content($course->id, ['keep_roles_and_enrolments' => 1, 'keep_groups_and_groupings' => 1]);
-    } else {
-        $category = $DB->get_field('course_categories', 'id', [], IGNORE_MULTIPLE);
-        $courseid = restore_dbops::create_new_course($fullname, $shortname, $category);
-        $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
-        $rc = new restore_controller(
-            $folder,
-            $course->id,
-            backup::INTERACTIVE_NO,
-            backup::MODE_GENERAL,
-            $admin->id,
-            backup::TARGET_NEW_COURSE
-        );
-        $rc->execute_precheck();
+        delete_course($course->id, false);
     }
+    $category = $DB->get_field('course_categories', 'id', [], IGNORE_MULTIPLE);
+    $courseid = restore_dbops::create_new_course($fullname, $shortname, $category);
+    $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
+    $rc = new restore_controller(
+        $folder,
+        $course->id,
+        backup::INTERACTIVE_NO,
+        backup::MODE_GENERAL,
+        $admin->id,
+        backup::TARGET_NEW_COURSE
+    );
+    $rc->execute_precheck();
     $rc->execute_plan();
     $rc->destroy();
     $DB->set_field('course', 'shortname', $shortname, ['id' => $course->id]);
