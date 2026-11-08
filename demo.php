@@ -42,6 +42,16 @@ const DEMO_SHORTNAME_SR = 'ALGORITHM-DEMO-SR';
 const DEMO_FULLNAME_SR = 'Algoritmi sa dijagramima toka: demo (srpski)';
 const DEMO_MBZ_SR = 'algoritam-demo-sr.mbz';
 
+const DEMO_SUMMARIES = [
+    'en' => 'Interactive algorithmic thinking and flowchart execution in Moodle. Visualize step-by-step flowchart execution, trace variable states, manipulate decision branches, and solve autograded algorithm challenges.',
+    'sr' => 'Interaktivno algoritamsko razmišljanje i izvršavanje dijagrama toka u Moodle-u. Vizuelno pratite izvršavanje korak po korak, promene vrednosti promenljivih, grananja i rešavajte automatski ocenjivane zadatke.',
+];
+
+const DEMO_CARDS = [
+    'en' => 'cards/card-en.png',
+    'sr' => 'cards/card-sr.png',
+];
+
 const DEMO_PASSWORD = 'Demo-2026';
 const DEMO_USERS = [
     'teacher' => ['firstname' => 'Demo', 'lastname' => 'Teacher', 'role' => 'editingteacher'],
@@ -75,9 +85,11 @@ if ($en_id && $sr_id) {
 
 if ($en_id) {
     demo_users($en_id);
+    demo_set_course_overview($en_id, DEMO_SUMMARIES['en'], DEMO_CARDS['en']);
 }
 if ($sr_id) {
     demo_users($sr_id);
+    demo_set_course_overview($sr_id, DEMO_SUMMARIES['sr'], DEMO_CARDS['sr']);
 }
 
 if ($en_id && $sr_id) {
@@ -222,6 +234,52 @@ function demo_languages(): void {
         echo "language packs: " . implode(' ', $controller->info) . "\n";
     } catch (\Throwable $e) {
         echo "language packs not installed: " . $e->getMessage() . "\n";
+    }
+}
+
+/**
+ * Sets the course summary and attaches the custom card cover image to overviewfiles.
+ */
+function demo_set_course_overview(int $courseid, string $summary, string $cardfile): void {
+    global $DB;
+
+    // 1. Set summary
+    if ($summary !== '') {
+        $DB->set_field('course', 'summary', $summary, ['id' => $courseid]);
+        $DB->set_field('course', 'summaryformat', FORMAT_HTML, ['id' => $courseid]);
+    }
+
+    // 2. Attach overview card image
+    $candidates = [
+        __DIR__ . '/' . $cardfile,
+        __DIR__ . '/' . basename($cardfile),
+    ];
+    $found = null;
+    foreach ($candidates as $cand) {
+        if (file_exists($cand)) {
+            $found = $cand;
+            break;
+        }
+    }
+
+    if ($found) {
+        try {
+            $context = \context_course::instance($courseid);
+            $fs = get_file_storage();
+            $fs->delete_area_files($context->id, 'course', 'overviewfiles');
+            $filerecord = [
+                'contextid' => $context->id,
+                'component' => 'course',
+                'filearea' => 'overviewfiles',
+                'itemid' => 0,
+                'filepath' => '/',
+                'filename' => basename($found),
+            ];
+            $fs->create_file_from_pathname($filerecord, $found);
+            echo "course {$courseid} overview image set: " . basename($found) . "\n";
+        } catch (\Throwable $e) {
+            echo "course {$courseid} overview image warning: " . $e->getMessage() . "\n";
+        }
     }
 }
 
