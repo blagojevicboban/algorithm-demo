@@ -107,6 +107,9 @@ if ($en_id && $sr_id) {
 }
 
 purge_all_caches();
+if (file_exists($CFG->dirroot . '/lib/editor/tiny/plugins/codelab/version.php') && !get_config('tiny_codelab', 'jobeapikey')) {
+    echo "Still to do: set Jobe API key in Site administration > Plugins > Text editors > TinyMCE editor > CodeLab\n";
+}
 if ($en_id) {
     echo "Done English: {$CFG->wwwroot}/course/view.php?id={$en_id}\n";
 }
@@ -116,9 +119,11 @@ if ($sr_id) {
 
 /**
  * Site settings of a public demo: no mail, no sign-up, guest button, all content cleaned, the algorithm filter on,
- * modern custom CSS for theme_boost.
+ * the Jobe server of TSP for Run the code (CodeLab), modern custom CSS for theme_boost.
  */
 function demo_settings(): void {
+    global $CFG;
+
     $settings = [
         'noemailever' => 1,         // Nothing is ever mailed.
         'registerauth' => '',       // No self registration.
@@ -141,6 +146,11 @@ function demo_settings(): void {
     }
     if (file_exists($CFG->dirroot . '/filter/aisim/version.php')) {
         filter_set_global_state('aisim', TEXTFILTER_ON);
+    }
+    if (file_exists($CFG->dirroot . '/lib/editor/tiny/plugins/codelab/version.php')) {
+        // Run the code of the algorithm plugins compiles on Jobe; the API key is entered by hand (never in this file).
+        set_config('jobeserver', 'https://jobe.tsp.edu.rs', 'tiny_codelab');
+        set_config('browserpython', 1, 'tiny_codelab');
     }
 
     // Ensure none of the 3 subplugins are disabled in TinyMCE
