@@ -50,7 +50,7 @@ Skripta radi sledeće:
   - `ALGORITHM-DEMO-SR` – *Algoritmi sa dijagramima toka: demo (srpski)*
 - U Sekciju 0 oba kursa postavlja banere za prebacivanje jezika (cross-link).
 - Upisuje demo naloge (`student` i `teacher`, lozinka `Demo-2026`) u oba kursa.
-- Ažurira naslovnu stranu sajta sa dva hero dugmeta (`🚀 Open Demo Course (English)` i `🇷🇸 Demo kurs (srpski)`).
+- Ažurira naslovnu stranu sajta sa dva hero dugmeta (`Open Demo Course (English)` i `Demo kurs (srpski)`).
 
 ## 5. Stalni cron poslovi
 

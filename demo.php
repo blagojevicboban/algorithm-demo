@@ -166,15 +166,15 @@ function demo_settings(): void {
     $auth_instructions = <<<'HTML'
 <div class="card border-0 shadow-lg rounded-4 p-4 text-start text-white" style="background: rgba(15, 23, 42, 0.92) !important; backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.18) !important; max-width: 440px; margin: 0 auto;">
     <div class="d-flex align-items-center gap-2 mb-3">
-        <span class="fs-4">⚡</span>
+        
         <h5 class="fw-bold mb-0 text-white">Instant Demo Access</h5>
     </div>
     <div class="p-3 rounded-3 mb-2" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12);">
-        <div class="fw-bold mb-1" style="color: #38bdf8;">🧑‍🏫 Teacher: <code>teacher</code></div>
+        <div class="fw-bold mb-1" style="color: #38bdf8;">Teacher: <code>teacher</code></div>
         <div class="small" style="color: rgba(255, 255, 255, 0.9); line-height: 1.4;">Draw visual flowcharts in TinyMCE, export code to Python, C &amp; Pascal, create interactive quizzes.</div>
     </div>
     <div class="p-3 rounded-3 mb-3" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12);">
-        <div class="fw-bold mb-1" style="color: #fbbf24;">🎓 Student: <code>student</code></div>
+        <div class="fw-bold mb-1" style="color: #fbbf24;">Student: <code>student</code></div>
         <div class="small" style="color: rgba(255, 255, 255, 0.9); line-height: 1.4;">Step through flowcharts interactively, track variables in the live watch panel, solve algorithm quizzes.</div>
     </div>
     <div class="d-flex align-items-center justify-content-between pt-2 border-top border-white border-opacity-25 small mb-2">
@@ -567,7 +567,7 @@ function demo_section_banner(int $courseid, string $lang, int $other_courseid): 
         $guide_cm = get_coursemodule_from_instance('page', $guide_page->id, $courseid);
         if ($guide_cm) {
             $guide_url = "{$CFG->wwwroot}/mod/page/view.php?id={$guide_cm->id}";
-            $btn_text = ($lang === 'en') ? '📖 User &amp; Teacher Guide →' : '📖 Vodič za algoritme →';
+            $btn_text = ($lang === 'en') ? 'User &amp; Teacher Guide →' : 'Vodič za algoritme →';
             $guide_btn = '<a href="' . $guide_url . '" class="btn btn-sm btn-warning text-dark rounded-pill px-3 fw-bold shadow-sm" style="backdrop-filter: blur(4px);">' . $btn_text . '</a>';
         }
     }
@@ -577,10 +577,10 @@ function demo_section_banner(int $courseid, string $lang, int $other_courseid): 
             . '<div class="card-body p-4">'
             . '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">'
             . '<div class="d-flex flex-wrap align-items-center gap-2">'
-            . '<span class="badge bg-white bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal" style="backdrop-filter: blur(4px);">✨ Interactive Flowcharts · English</span>'
+            . '<span class="badge bg-white bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal" style="backdrop-filter: blur(4px);">Interactive Flowcharts · English</span>'
             . $guide_btn
             . '</div>'
-            . '<a href="' . $other_url . '" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold" style="backdrop-filter: blur(4px);">🇷🇸 Prebaci na srpski kurs →</a>'
+            . '<a href="' . $other_url . '" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold" style="backdrop-filter: blur(4px);">Prebaci na srpski kurs →</a>'
             . '</div>'
             . '<h2 class="fw-bold text-white mb-2">Welcome to Algorithm Plugins for Moodle!</h2>'
             . '<p class="mb-3" style="color: rgba(255,255,255,0.9) !important; font-size: 1.05rem;">Draw algorithms in TinyMCE, step through blocks, and grade with test cases. Follow this 4-step tour to experience the plugins:</p>'
@@ -599,10 +599,10 @@ function demo_section_banner(int $courseid, string $lang, int $other_courseid): 
             . '<div class="card-body p-4">'
             . '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">'
             . '<div class="d-flex flex-wrap align-items-center gap-2">'
-            . '<span class="badge bg-white bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal" style="backdrop-filter: blur(4px);">✨ Dijagrami toka · Srpski</span>'
+            . '<span class="badge bg-white bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal" style="backdrop-filter: blur(4px);">Dijagrami toka · Srpski</span>'
             . $guide_btn
             . '</div>'
-            . '<a href="' . $other_url . '" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold" style="backdrop-filter: blur(4px);">🌐 Switch to English Course →</a>'
+            . '<a href="' . $other_url . '" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold" style="backdrop-filter: blur(4px);">Switch to English Course →</a>'
             . '</div>'
             . '<h2 class="fw-bold text-white mb-2">Dobrodošli u pluginove za algoritme u Moodle-u!</h2>'
             . '<p class="mb-3" style="color: rgba(255,255,255,0.9) !important; font-size: 1.05rem;">Crtajte algoritme u TinyMCE, koračajte kroz blokove i automatski ocenjujte zadatke. Isprobajte sve u 4 koraka:</p>'
@@ -703,7 +703,7 @@ function demo_frontpage(int $en_id, int $sr_id): void {
         . '<p>Open the demo courses as a guest, or log in with one of these accounts (password <strong>' . DEMO_PASSWORD . '</strong>):</p><ul>'
         . '<li><strong>teacher</strong>: edit the pages and the quiz questions, insert flowcharts</li>'
         . '<li><strong>student</strong>: solve the exercises, take the quiz, post in the forum</li></ul>'
-        . '<p>Courses available: <a href="' . $en_url . '"><strong>Algorithms with flowcharts: demo (English)</strong></a> · <a href="' . $sr_url . '"><strong>Algoritmi sa dijagramima toka: demo (srpski)</strong></a> · <a href="' . $en_guide_url . '"><strong>📖 User &amp; Teacher Guide</strong></a></p>'
+        . '<p>Courses available: <a href="' . $en_url . '"><strong>Algorithms with flowcharts: demo (English)</strong></a> · <a href="' . $sr_url . '"><strong>Algoritmi sa dijagramima toka: demo (srpski)</strong></a> · <a href="' . $en_guide_url . '"><strong>User &amp; Teacher Guide</strong></a></p>'
         . '<p>Everything you change is reset every night. Serbian (Latin and Cyrillic) is in the language menu.</p>';
     $DB->update_record('course', (object) [
         'id' => SITEID,
@@ -718,23 +718,23 @@ function demo_frontpage(int $en_id, int $sr_id): void {
         . '<div class="row align-items-center">'
         . '<div class="col-lg-8">'
         . '<div class="d-flex flex-wrap gap-2 mb-3">'
-        . '<span class="badge bg-white bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal" style="backdrop-filter: blur(4px);">✨ Official Demo for Moodle Algorithm Plugins</span>'
-        . '<span class="badge bg-info bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal">🧱 TinyMCE Editor</span>'
-        . '<span class="badge bg-warning bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal">▶️ Step Execution</span>'
-        . '<span class="badge bg-success bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal">🌐 7 Programming Languages</span>'
-        . '<a href="' . $en_guide_url . '" class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold text-decoration-none shadow-sm">📖 User &amp; Teacher Guide →</a>'
+        . '<span class="badge bg-white bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal" style="backdrop-filter: blur(4px);">Official Demo for Moodle Algorithm Plugins</span>'
+        . '<span class="badge bg-info bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal">TinyMCE Editor</span>'
+        . '<span class="badge bg-warning bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal">Step Execution</span>'
+        . '<span class="badge bg-success bg-opacity-25 text-white px-3 py-2 rounded-pill fw-normal">7 Programming Languages</span>'
+        . '<a href="' . $en_guide_url . '" class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold text-decoration-none shadow-sm">User &amp; Teacher Guide →</a>'
         . '</div>'
         . '<h1 class="display-6 fw-bold text-white mb-3">Interactive Flowcharts &amp; Algorithms in Moodle</h1>'
         . '<p class="lead mb-4" style="color: rgba(255,255,255,0.92) !important; font-size: 1.15rem;">Draw algorithms directly in TinyMCE, run them step-by-step with live variable watches, convert to 7 programming languages, and grade submissions automatically with test cases.</p>'
         . '<div class="d-flex flex-wrap gap-3 mb-2">'
-        . '<a href="' . $en_url . '" class="btn btn-light btn-lg px-4 fw-bold shadow-sm" style="border-radius: 12px; color: #312e81;">🇬🇧 Open English Demo</a>'
-        . '<a href="' . $sr_url . '" class="btn btn-outline-light btn-lg px-4 fw-bold shadow-sm" style="border-radius: 12px; border-width: 2px;">🇷🇸 Otvori kurs na srpskom</a>'
-        . '<a href="' . $en_guide_url . '" class="btn btn-warning text-dark btn-lg px-4 fw-bold shadow-sm" style="border-radius: 12px;">📖 User &amp; Teacher Guide</a>'
+        . '<a href="' . $en_url . '" class="btn btn-light btn-lg px-4 fw-bold shadow-sm" style="border-radius: 12px; color: #312e81;">Open English Demo</a>'
+        . '<a href="' . $sr_url . '" class="btn btn-outline-light btn-lg px-4 fw-bold shadow-sm" style="border-radius: 12px; border-width: 2px;">Otvori kurs na srpskom</a>'
+        . '<a href="' . $en_guide_url . '" class="btn btn-warning text-dark btn-lg px-4 fw-bold shadow-sm" style="border-radius: 12px;">User &amp; Teacher Guide</a>'
         . '</div>'
         . '</div>'
         . '<div class="col-lg-4 text-center d-none d-lg-block">'
         . '<div class="p-3 bg-white bg-opacity-10 rounded-4 shadow-sm" style="backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2);">'
-        . '<div class="fw-bold fs-5 text-white mb-2">⚡ Quick Test Accounts</div>'
+        . '<div class="fw-bold fs-5 text-white mb-2">Quick Test Accounts</div>'
         . '<div class="text-start bg-dark bg-opacity-50 p-3 rounded-3 font-monospace small text-white mb-2">'
         . '<div><strong>Teacher:</strong> teacher</div><div><strong>Student:</strong> student</div><div><strong>Password:</strong> ' . DEMO_PASSWORD . '</div>'
         . '</div>'
@@ -745,35 +745,35 @@ function demo_frontpage(int $en_id, int $sr_id): void {
         . '<div class="col-md-6">'
         . '<div class="card h-100 border-0 shadow-sm p-4 demo-course-card" style="background:#ffffff; border-left: 5px solid #4f46e5 !important;">'
         . '<div class="d-flex justify-content-between align-items-start mb-2">'
-        . '<h4 class="fw-bold mb-0 text-primary">🇬🇧 Algorithms: Demo (English)</h4>'
+        . '<h4 class="fw-bold mb-0 text-primary">Algorithms: Demo (English)</h4>'
         . '<span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill">ALGORITHM-DEMO</span>'
         . '</div>'
         . '<p class="text-muted mb-3">Run flowcharts step-by-step, inspect variables in real-time, translate to 7 languages (Python, C, C++, Java, C#, JS, Pascal), and solve exercises with test cases.</p>'
-        . '<a href="' . $en_url . '" class="btn btn-primary fw-bold px-4 rounded-3 align-self-start">🚀 Enter English Course →</a>'
+        . '<a href="' . $en_url . '" class="btn btn-primary fw-bold px-4 rounded-3 align-self-start">Enter English Course →</a>'
         . '</div></div>'
         . '<div class="col-md-6">'
         . '<div class="card h-100 border-0 shadow-sm p-4 demo-course-card" style="background:#ffffff; border-left: 5px solid #059669 !important;">'
         . '<div class="d-flex justify-content-between align-items-start mb-2">'
-        . '<h4 class="fw-bold mb-0 text-success">🇷🇸 Algoritmi: Demo (srpski)</h4>'
+        . '<h4 class="fw-bold mb-0 text-success">Algoritmi: Demo (srpski)</h4>'
         . '<span class="badge bg-success bg-opacity-10 text-success px-3 py-1 rounded-pill">ALGORITHM-DEMO-SR</span>'
         . '</div>'
         . '<p class="text-muted mb-3">Crtanje dijagrama toka u TinyMCE, koračanje, praćenje vrednosti promenljivih, dvodimenzionalne matrice, funkcije i automatski ocenjivani kvizovi.</p>'
-        . '<a href="' . $sr_url . '" class="btn btn-success fw-bold px-4 rounded-3 align-self-start">🇷🇸 Otvori kurs na srpskom →</a>'
+        . '<a href="' . $sr_url . '" class="btn btn-success fw-bold px-4 rounded-3 align-self-start">Otvori kurs na srpskom →</a>'
         . '</div></div>'
         . '</div>'
         // Test Accounts Strip
         . '<div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-light">'
         . '<div class="row g-2 align-items-center text-center text-md-start">'
-        . '<div class="col-md-3 fw-bold text-dark"><span class="fs-5 me-2">⚡</span>Instant Demo Access:</div>'
-        . '<div class="col-md-3"><div class="p-2 px-3 bg-white rounded-3 shadow-sm border small"><strong>👤 Guest:</strong> Run &amp; step through all diagrams</div></div>'
-        . '<div class="col-md-3"><div class="p-2 px-3 bg-white rounded-3 shadow-sm border small"><strong>🎓 Student:</strong> <code>student</code> / <code>Demo-2026</code></div></div>'
-        . '<div class="col-md-3"><div class="p-2 px-3 rounded-3 bg-white rounded-3 shadow-sm border small"><strong>🧑‍🏫 Teacher:</strong> <code>teacher</code> / <code>Demo-2026</code></div></div>'
+        . '<div class="col-md-3 fw-bold text-dark">Instant Demo Access:</div>'
+        . '<div class="col-md-3"><div class="p-2 px-3 bg-white rounded-3 shadow-sm border small"><strong>Guest:</strong> Run &amp; step through all diagrams</div></div>'
+        . '<div class="col-md-3"><div class="p-2 px-3 bg-white rounded-3 shadow-sm border small"><strong>Student:</strong> <code>student</code> / <code>Demo-2026</code></div></div>'
+        . '<div class="col-md-3"><div class="p-2 px-3 rounded-3 bg-white rounded-3 shadow-sm border small"><strong>Teacher:</strong> <code>teacher</code> / <code>Demo-2026</code></div></div>'
         . '</div></div>'
         // 3 Plugin Cards
         . '<div class="row g-3 mb-4">'
-        . '<div class="col-md-4"><div class="card h-100 border-0 shadow-sm rounded-3 p-3"><div class="d-flex align-items-center mb-2"><span class="fs-4 me-2">🧱</span><h5 class="card-title mb-0 fw-bold"><a href="https://moodle.org/plugins/tiny_algorithm" target="_blank" class="text-decoration-none">tiny_algorithm</a></h5></div><p class="card-text text-muted small mb-0">Visual flowchart editor for TinyMCE with drag &amp; drop, matrices, undo/redo, and code generator for Python, C, C++, Java, C#, JS &amp; Pascal.</p></div></div>'
-        . '<div class="col-md-4"><div class="card h-100 border-0 shadow-sm rounded-3 p-3"><div class="d-flex align-items-center mb-2"><span class="fs-4 me-2">▶️</span><h5 class="card-title mb-0 fw-bold"><a href="https://moodle.org/plugins/filter_algorithm" target="_blank" class="text-decoration-none">filter_algorithm</a></h5></div><p class="card-text text-muted small mb-0">Text filter that turns static SVG diagrams into an interactive step-by-step viewer with variable watch and student editing &amp; testing.</p></div></div>'
-        . '<div class="col-md-4"><div class="card h-100 border-0 shadow-sm rounded-3 p-3"><div class="d-flex align-items-center mb-2"><span class="fs-4 me-2">📋</span><h5 class="card-title mb-0 fw-bold"><a href="https://moodle.org/plugins/qtype_algorithm" target="_blank" class="text-decoration-none">qtype_algorithm</a></h5></div><p class="card-text text-muted small mb-0">Moodle question type for quizzes: students draw algorithms, run them, and are graded automatically against test cases.</p></div></div>'
+        . '<div class="col-md-4"><div class="card h-100 border-0 shadow-sm rounded-3 p-3"><div class="d-flex align-items-center mb-2"><h5 class="card-title mb-0 fw-bold"><a href="https://moodle.org/plugins/tiny_algorithm" target="_blank" class="text-decoration-none">tiny_algorithm</a></h5></div><p class="card-text text-muted small mb-0">Visual flowchart editor for TinyMCE with drag &amp; drop, matrices, undo/redo, and code generator for Python, C, C++, Java, C#, JS &amp; Pascal.</p></div></div>'
+        . '<div class="col-md-4"><div class="card h-100 border-0 shadow-sm rounded-3 p-3"><div class="d-flex align-items-center mb-2"><h5 class="card-title mb-0 fw-bold"><a href="https://moodle.org/plugins/filter_algorithm" target="_blank" class="text-decoration-none">filter_algorithm</a></h5></div><p class="card-text text-muted small mb-0">Text filter that turns static SVG diagrams into an interactive step-by-step viewer with variable watch and student editing &amp; testing.</p></div></div>'
+        . '<div class="col-md-4"><div class="card h-100 border-0 shadow-sm rounded-3 p-3"><div class="d-flex align-items-center mb-2"><h5 class="card-title mb-0 fw-bold"><a href="https://moodle.org/plugins/qtype_algorithm" target="_blank" class="text-decoration-none">qtype_algorithm</a></h5></div><p class="card-text text-muted small mb-0">Moodle question type for quizzes: students draw algorithms, run them, and are graded automatically against test cases.</p></div></div>'
         . '</div>';
 
     $DB->set_field('course_sections', 'summary', $hero, ['course' => SITEID, 'section' => 1]);
