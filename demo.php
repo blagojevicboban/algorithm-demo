@@ -141,6 +141,9 @@ function demo_settings(): void {
         set_config($name, $value);
     }
     filter_set_global_state('algorithm', TEXTFILTER_ON);
+    // The video on the front page is a plain YouTube link that the media filter turns into a player.
+    filter_set_global_state('mediaplugin', TEXTFILTER_ON);
+    \core\plugininfo\media::enable_plugin('youtube', 1);
     if (file_exists($CFG->dirroot . '/filter/codelab/version.php')) {
         filter_set_global_state('codelab', TEXTFILTER_ON);
     }
@@ -740,6 +743,14 @@ function demo_frontpage(int $en_id, int $sr_id): void {
         . '</div>'
         . '<div class="small text-white-50">Or explore as <strong>Guest</strong>! Courses reset nightly at 03:30.</div>'
         . '</div></div></div></div></div>'
+        // Video tour (the media filter turns the link into a YouTube player).
+        . '<div class="card border-0 shadow-sm rounded-4 mb-4 p-3 p-md-4">'
+        . '<h4 class="fw-bold mb-1">Video tour: 11 interactive features</h4>'
+        . '<p class="text-muted mb-3">A short walk through the algorithm plugins: drawing, Run and Step, variables, code in seven languages and graded quizzes.</p>'
+        . '<div class="demo-video" style="max-width: 960px;">'
+        . '<a href="https://youtu.be/Dq3P488NW2Q#d=960x540">Algorithm Plugins for Moodle: live demo of 11 interactive features</a>'
+        . '</div>'
+        . '</div>'
         // Dual-Language Cards
         . '<div class="row g-3 mb-4">'
         . '<div class="col-md-6">'
